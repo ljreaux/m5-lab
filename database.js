@@ -1,51 +1,36 @@
 import * as SQLite from 'expo-sqlite';
 import { SECTION_LIST_MOCK_DATA } from './utils';
 
-const db = SQLite.openDatabase('little_lemon');
-
 export async function createTable() {
-  return new Promise((resolve, reject) => {
-    db.transaction(
-      (tx) => {
-        tx.executeSql(
-          'create table if not exists menuitems (id integer primary key not null, uuid text, title text, price text, category text);'
-        );
-      },
-      reject,
-      resolve
-    );
-  });
+  const db = await SQLite.openDatabaseAsync('little_lemon');
+  await db.execAsync(
+    'create table if not exists menuitems (id integer primary key not null, uuid text, title text, price text, category text);'
+  );
 }
 
 export async function getMenuItems() {
-  return new Promise((resolve) => {
-    db.transaction((tx) => {
-      tx.executeSql('select * from menuitems', [], (_, { rows }) => {
-        resolve(rows._array);
-      });
-    });
-  });
+  const db = await SQLite.openDatabaseAsync('little_lemon');
+  try {
+    const dbQuery = await db.getAllAsync('select * from menuitems');
+    return dbQuery;
+  } catch (e) {
+    console.log(e); 
+  }
 }
 
-export function saveMenuItems(menuItems) {
-  db.transaction((tx) => {
-    // 2. Implement a single SQL statement to save all menu data in a table called menuitems.
-    // Check the createTable() function above to see all the different columns the table has
-    // Hint: You need a SQL statement to insert multiple rows at once.
-    menuItems.forEach(item => {
-      console.log(item.title)
-      tx.executeSql('insert into menuitems (uuid, title, price, category) values (?, ?, ?, ?)', [
-        item.id,
-        item.title,
-        item.price,
-        item.category,
-      ])
-    })
+export async function saveMenuItems(menuItems) {
+  const db = await SQLite.openDatabaseAsync('little_lemon');
+  menuItems.forEach(async (item) => {
+    const result = await db.runAsync(
+      'insert into menuitems (uuid, title, price, category) values (?, ?, ?, ?)',
+      [item.id, item.title, item.price, item.category]
+    );
+    console.log(result);
   });
 }
 
 /**
- * 4. Implement a transaction that executes a SQL statement to filter the menu by 2 criteria:
+ * 4. Implement a transactionAsync that executes a SQL statement to filter the menu by 2 criteria:
  * a query string and a list of categories.
  *
  * The query string should be matched against the menu item titles to see if it's a substring.
